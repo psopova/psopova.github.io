@@ -1,6 +1,6 @@
 # Rig Tooling Bench
 
-Two Blender add-ons for rigged characters, and the headless benchmark rig they were built against.
+Three Blender add-ons for rigged characters, and the headless benchmark rig they were built against.
 
 Everything here was measured, not asserted. Every figure below comes out of `bench/`, and the results
 that went the wrong way are shown alongside the ones that did not.
@@ -40,7 +40,38 @@ meshes.
 Four characters, three levels each. Twelve LOD builds with full metrics in 4.3 seconds.
 Reproduce with `bench/tests/lod_bench.py`.
 
-![LOD chain](docs/lod_chain.png)
+![LOD chain](../../assets/lod_chain.png)
+
+---
+
+## Shape Key Transfer
+
+Move an entire shape key set onto a mesh with completely unrelated topology.
+
+Blender's route is a Surface Deform modifier plus Apply as Shape Key, one key at a time. Surface Deform
+binds by barycentric projection and interpolates *positions*, so any shape carrying local rotation, a jaw
+opening or a head turning, arrives smeared. Blender's own tracker records it as #161807 and #98891. Data
+Transfer cannot carry shape keys at all.
+
+This transfers through each source triangle's local frame, which is that triangle's deformation gradient,
+so rotation and scale come across exactly.
+
+Ground truth is exact rather than estimated. Each test shape is an analytic function of position: apply it
+to the donor to make its key, apply the same function to the target to get the target's provably correct
+key, then transfer and measure against that.
+
+| Test shape | Deformation gradient | Position blending | Worst case, ours | Worst case, theirs | Error reduced |
+|---|---|---|---|---|---|
+| Jaw open | 0.0004% | 0.0026% | 0.024% | 0.180% | 85.0% |
+| Head turn | 0.0005% | 0.0031% | 0.024% | 0.153% | 84.9% |
+| Shoulder raise | 0.0123% | 0.0207% | 0.335% | 0.514% | 40.4% |
+| Spine bend | 0.0014% | 0.0175% | 0.033% | 0.155% | 91.8% |
+
+Sixteen transfers in 5.5 seconds, source 8,428 vertices to target 13,626, unrelated topology.
+**66.7% lower error overall, 6 times better in the worst case.**
+Reproduce with `bench/tests/keytransfer_bench.py`.
+
+![Shape key transfer error](../../assets/kt_ours.png)
 
 ---
 
@@ -121,6 +152,7 @@ jaggedness check became permanent.
 Download a zip from `dist/`, then in Blender: **Edit > Preferences > Add-ons > Install from Disk**.
 
 - Character LOD: select the character mesh, then **Object > Character LOD**
+- Shape Key Transfer: select the target, shift-select the donor so the target is active, then **Object > Shape Key Transfer**
 - Geodesic Weights: select the mesh parented to an armature, then **Object > Parent > Geodesic Weights**
 
 `dist/` also has demo `.blend` files for each.

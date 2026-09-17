@@ -15,9 +15,9 @@ echo "Site        : $SITE"
 echo
 
 # stamp the real URLs into the page and the readme
-sed -i "s|GITHUB_URL|https://github.com/$U/$REPO|g" docs/index.html
-sed -i "s|https://github.com/zemis/[^\"]*|https://github.com/$U/$REPO|g" docs/index.html
-sed -i "s|https://github.com/psopova/[^\"]*|https://github.com/$U/$REPO|g" docs/index.html
+sed -i "s|GITHUB_URL|https://github.com/$U/$REPO|g" index.html
+sed -i "s|https://github.com/zemis/[^\"]*|https://github.com/$U/$REPO|g" index.html
+sed -i "s|https://github.com/psopova/[^\"]*|https://github.com/$U/$REPO|g" index.html
 sed -i "s|GITHUB_PAGES_URL|$SITE|g" README.md
 
 git init -q 2>/dev/null || true
@@ -39,7 +39,7 @@ git push -u origin main
 
 echo
 echo "Turning on GitHub Pages..."
-gh api -X POST "repos/$U/$REPO/pages" -f "source[branch]=main" -f "source[path]=/docs" >/dev/null 2>&1 \
+gh api -X POST "repos/$U/$REPO/pages" -f "source[branch]=main" -f "source[path]=/" >/dev/null 2>&1 \
   && echo "Pages enabled." \
   || echo "Pages not enabled automatically. Do it manually: Settings > Pages > Branch main, folder /docs"
 

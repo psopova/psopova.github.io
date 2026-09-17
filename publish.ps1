@@ -22,7 +22,7 @@ Write-Host "Site        : $SITE" -ForegroundColor Cyan
 Write-Host ""
 
 # stamp the real URLs into the page and the readme
-$idx  = "docs\index.html"
+$idx  = "index.html"
 $html = Get-Content $idx -Raw
 $html = $html -replace 'GITHUB_URL', "https://github.com/$U/$REPO"
 $html = $html -replace 'https://github\.com/(zemis|psopova)/rig-tooling-bench', "https://github.com/$U/$REPO"
@@ -61,9 +61,9 @@ if ($LASTEXITCODE -ne 0) { Fail "Push failed. Paste the output above." }
 
 Write-Host ""
 Write-Host "Turning on GitHub Pages..."
-gh api -X POST "repos/$U/$REPO/pages" -f "source[branch]=main" -f "source[path]=/docs" *> $null
+gh api -X POST "repos/$U/$REPO/pages" -f "source[branch]=main" -f "source[path]=/" *> $null
 if ($LASTEXITCODE -eq 0) { Write-Host "Pages enabled." -ForegroundColor Green }
-else { Write-Host "Could not enable Pages automatically. Do it at: https://github.com/$U/$REPO/settings/pages  (Branch: main, folder: /docs)" -ForegroundColor Yellow }
+else { Write-Host "Could not enable Pages automatically. Do it at: https://github.com/$U/$REPO/settings/pages  (Branch: main, folder: / (root))" -ForegroundColor Yellow }
 
 Write-Host ""
 Write-Host "DONE." -ForegroundColor Green

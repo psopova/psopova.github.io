@@ -110,6 +110,7 @@
   <div class="downloads">
     <a class="dl" href="projects/rig-tooling-bench/dist/character_lod-0.1.0.zip">Character LOD &mdash; .zip</a>
     <a class="dl" href="projects/rig-tooling-bench/dist/geodesic_weights-0.1.0.zip">Geodesic Weights &mdash; .zip</a>
+    <a class="dl" href="projects/rig-tooling-bench/dist/shapekey_transfer-0.1.0.zip">Shape Key Transfer &mdash; .zip</a>
     <a class="dl" href="https://github.com/psopova/psopova.github.io">Source on GitHub</a>
   </div>
 </header>
@@ -117,7 +118,7 @@
 <section>
   <span class="num">Project 01</span>
   <h2>Rig Tooling Bench</h2>
-  <p class="kicker">Two add-ons for rigged characters, and the measurement rig they were built against. Blender 4.2+, GPL-3.0.</p>
+  <p class="kicker">Three add-ons for rigged characters, and the measurement rig they were built against. Blender 4.2+, GPL-3.0. Each one does something Blender either refuses to do or does measurably badly, and each ships with the benchmark behind its claim.</p>
 </section>
 
 <section>
@@ -134,7 +135,7 @@
   <p>This add-on captures the weights and the shape key deltas before touching the topology, reduces, then maps both back onto the new vertices by inverse-distance blend from the nearest source vertices, and renormalises under the influence cap. Triangle budgets are hit by binary-searching the decimate ratio, because Blender's ratio acts on triangles and a ratio derived from a face count misses badly on quad and n-gon meshes.</p>
 
   <figure>
-    <img src="projects/rig-tooling-bench/lod_chain.png" alt="Four wireframe renders of the same character at decreasing triangle counts: 14,424, 7,218, 3,616 and 1,420 triangles, silhouette preserved throughout.">
+    <img src="assets/lod_chain.png" alt="Four wireframe renders of the same character at decreasing triangle counts: 14,424, 7,218, 3,616 and 1,420 triangles, silhouette preserved throughout.">
     <figcaption><b>One source character, three generated levels.</b> Each level was given a triangle budget and hit it. Vertex groups and shape keys survive every step.</figcaption>
   </figure>
 
@@ -152,7 +153,43 @@
 </section>
 
 <section>
-  <span class="num">02 &middot; Geodesic Weights</span>
+  <span class="num">02 &middot; Shape Key Transfer</span>
+  <h2>Shape Key Transfer</h2>
+  <p class="kicker">Move an entire shape key set onto a mesh with completely unrelated topology, through deformation gradients rather than positions.</p>
+
+  <p>Blender's route is a Surface Deform modifier plus Apply as Shape Key, one key at a time. Surface Deform binds by barycentric projection and interpolates <em>positions</em>, so any shape carrying local rotation, a jaw opening, a head turning, a shoulder lifting, arrives smeared. Blender's own tracker records it: <b>#161807 "Apply Shapekey from Surface Deform Not Accurate"</b> and <b>#98891 "Surface Deform modifier ignores shapekeys"</b>. Data Transfer cannot carry shape keys at all.</p>
+
+  <p>This transfers through each source triangle's local frame, which is that triangle's deformation gradient, so rotation and scale come across exactly rather than being averaged away.</p>
+
+  <div class="claim"><div class="q">Ground truth here is <b>exact, not estimated</b>. Each test shape is an analytic function of position. Apply it to the donor to make its key; apply the same function to the target to get the target's provably correct key. Transfer donor to target, measure against that. No circularity, and no scoring a method against itself.</div></div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Test shape</th><th>Deformation gradient</th><th>Position blending</th><th>Worst case, ours</th><th>Worst case, theirs</th><th>Error reduced</th></tr></thead>
+    <tbody>
+      <tr class="good"><td>Jaw open</td><td>0.0004%</td><td>0.0026%</td><td>0.024%</td><td>0.180%</td><td>85.0%</td></tr>
+      <tr class="good"><td>Head turn</td><td>0.0005%</td><td>0.0031%</td><td>0.024%</td><td>0.153%</td><td>84.9%</td></tr>
+      <tr class="good"><td>Shoulder raise</td><td>0.0123%</td><td>0.0207%</td><td>0.335%</td><td>0.514%</td><td>40.4%</td></tr>
+      <tr class="good"><td>Spine bend</td><td>0.0014%</td><td>0.0175%</td><td>0.033%</td><td>0.155%</td><td>91.8%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Sixteen transfers, four characters by four shapes, in 5.5 seconds. Source 8,428 vertices to target 13,626 vertices, unrelated topology. Error is mean per-vertex distance from the exact answer, as a percentage of body height. <b>66.7% lower error overall, and 6 times better in the worst case.</b> Reproduce with <code>bench/tests/keytransfer_bench.py</code>.</p>
+
+  <div class="pair">
+    <figure>
+      <img src="assets/kt_base.png" alt="Error map on the target head under position blending, showing a large lit region of transfer error.">
+      <figcaption><b>Position blending.</b> Head turn, worst error 0.146% of body height.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/kt_ours.png" alt="Error map on the same head under deformation gradient transfer, nearly dark.">
+      <figcaption><b>Deformation gradients.</b> Same shape, same colour scale, worst error 0.024%.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <span class="num">03 &middot; Geodesic Weights</span>
   <h2>Geodesic Weights</h2>
   <p class="kicker">Binding that measures distance along the surface instead of through the air, and an honest account of what that buys.</p>
 
@@ -166,21 +203,21 @@
 
   <div class="pair">
     <figure>
-      <img src="projects/rig-tooling-bench/pf_weight_heat.png" alt="Weight map of the left upper arm bone under bone heat binding, its influence spreading across the chest.">
+      <img src="assets/pf_weight_heat.png" alt="Weight map of the left upper arm bone under bone heat binding, its influence spreading across the chest.">
       <figcaption><b>Bone heat.</b> The arm bone's influence spills across the shoulder and down the chest.</figcaption>
     </figure>
     <figure>
-      <img src="projects/rig-tooling-bench/pf_weight_geo.png" alt="Weight map of the same bone under geodesic binding, influence confined to the arm.">
+      <img src="assets/pf_weight_geo.png" alt="Weight map of the same bone under geodesic binding, influence confined to the arm.">
       <figcaption><b>Geodesic.</b> The chest is far from the arm across the skin, even though it is close through the air.</figcaption>
     </figure>
   </div>
   <div class="pair">
     <figure>
-      <img src="projects/rig-tooling-bench/pf_bleed_heat.png" alt="Error map under bone heat: a large lit region across the chest where torso vertices moved.">
+      <img src="assets/pf_bleed_heat.png" alt="Error map under bone heat: a large lit region across the chest where torso vertices moved.">
       <figcaption><b>Error, bone heat.</b> Arm raised. Every lit torso vertex moved and should not have.</figcaption>
     </figure>
     <figure>
-      <img src="projects/rig-tooling-bench/pf_bleed_geo.png" alt="Error map under geodesic binding: a visibly smaller lit region near the shoulder.">
+      <img src="assets/pf_bleed_geo.png" alt="Error map under geodesic binding: a visibly smaller lit region near the shoulder.">
       <figcaption><b>Error, geodesic.</b> Same pose, same colour scale. The region contracts toward the shoulder.</figcaption>
     </figure>
   </div>
@@ -203,7 +240,7 @@
 </section>
 
 <section>
-  <span class="num">03 &middot; Method</span>
+  <span class="num">04 &middot; The bench</span>
   <h2>The bench</h2>
   <p class="kicker">The measurement rig both tools were built against. Headless, no GUI, nobody looking at anything.</p>
   <ul>
@@ -216,11 +253,12 @@
 </section>
 
 <section>
-  <span class="num">04 &middot; Method</span>
-  <h2>Two results thrown away</h2>
+  <span class="num">05 &middot; Judgement</span>
+  <h2>What I measured and rejected</h2>
   <p class="kicker">Both caught by the bench before anything was published. A portfolio that shows only the wins is not evidence of method.</p>
   <ul>
-    <li><strong>A benchmark that could not measure the thing.</strong> The first test characters were unions of separate boxes, so the mesh had disconnected shells and surface distance between them was undefined. The method scored a 16% improvement on that corpus and 93% on properly welded bodies. The benchmark was wrong, not the algorithm. Found by running a connected-components count on the mesh edge graph.</li>
+    <li><strong>A product I was about to build, killed by measuring first.</strong> UV packing looked ideal: Zen UV sells at 39 USD with 13,200 sales, UVPackmaster at 55 USD with 19,600, and packing efficiency is a percentage a listing can advertise. I measured Blender's packer on four characters: <b>Smart UV Project covers 52.7% of the UV square, and pack_islands raises it to 61.0%</b>. Then I checked the core tracker and found Blender's own UV developer had already closed that problem, taking utilisation from 46.4% to 67.3% and beating a commercial packer in his own comparison. The gap I was going to sell into had been filled in core. Cost of finding out: one measurement and one issue thread.</li>
+  <li><strong>A benchmark that could not measure the thing.</strong> The first test characters were unions of separate boxes, so the mesh had disconnected shells and surface distance between them was undefined. The method scored a 16% improvement on that corpus and 93% on properly welded bodies. The benchmark was wrong, not the algorithm. Found by running a connected-components count on the mesh edge graph.</li>
     <li><strong>A 93% that was fake.</strong> Near-zero bleed can also mean every vertex snapped to exactly one bone, which is rigid binding and deforms like cardboard. Measuring effective bones per vertex showed <b>76.9% of vertices rigid</b> and the surface more than twice as jagged as bone heat. The number was discarded and the jaggedness check became permanent.</li>
   </ul>
 </section>
