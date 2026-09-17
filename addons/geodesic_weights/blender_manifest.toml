@@ -1,0 +1,9 @@
+schema_version = "1.0.0"
+id = "geodesic_weights"
+version = "0.1.0"
+name = "Geodesic Weights"
+tagline = "Skin weights measured along the surface, not through the air"
+maintainer = "Arminas"
+type = "add-on"
+license = ["SPDX:GPL-3.0-or-later"]
+blender_version_min = "4.2.0"

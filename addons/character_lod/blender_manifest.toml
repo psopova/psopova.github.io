@@ -1,0 +1,9 @@
+schema_version = "1.0.0"
+id = "character_lod"
+version = "0.1.0"
+name = "Character LOD"
+tagline = "LOD chains for rigged characters, with shape keys and weights intact"
+maintainer = "Arminas"
+type = "add-on"
+license = ["SPDX:GPL-3.0-or-later"]
+blender_version_min = "4.2.0"

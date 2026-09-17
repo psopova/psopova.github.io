@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rig Tooling Bench</title>
+<meta name="description" content="Two Blender add-ons for rigged characters, and the headless benchmark rig they were built against.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-size:14px}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+
+  :root{
+    --ink:#161a24; --ink-soft:#4a5262; --ink-faint:#7b8494;
+    --ground:#f6f5f2; --panel:#ffffff; --rule:#dcdad4;
+    --deep:#1a2a6b; --teal:#0d8290; --hot:#d94a12; --warn:#a8790b;
+    --plot:#141823;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,sans-serif;
+    --serif:'IBM Plex Serif',Georgia,serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ink:#e7e5e0; --ink-soft:#a8aebb; --ink-faint:#737c8c;
+      --ground:#101319; --panel:#171b23; --rule:#2a3039;
+      --deep:#6d8ce8; --teal:#35c2cf; --hot:#ff7b45; --warn:#e0b040;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e7e5e0; --ink-soft:#a8aebb; --ink-faint:#737c8c;
+    --ground:#101319; --panel:#171b23; --rule:#2a3039;
+    --deep:#6d8ce8; --teal:#35c2cf; --hot:#ff7b45; --warn:#e0b040;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.6;
+       margin:0;padding-inline:20px;padding-block:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding-block:56px 80px}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,5.2vw,44px);line-height:1.12;letter-spacing:-.015em}
+  h2{font-family:var(--serif);font-weight:600;font-size:clamp(21px,3vw,28px);line-height:1.18;letter-spacing:-.01em}
+  h3{font-family:var(--serif);font-weight:600;font-size:17px;margin:26px 0 8px}
+  p{margin:0 0 16px;max-width:66ch}
+  a{color:var(--deep)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--hot);margin-bottom:14px}
+  .lede{font-size:18px;color:var(--ink-soft);max-width:60ch;margin-top:18px}
+  header{border-bottom:2px solid var(--ink);padding-bottom:28px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);margin-top:22px}
+
+  section{padding-block:46px;border-bottom:1px solid var(--rule)}
+  section:last-of-type{border-bottom:0}
+  .num{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--hot);display:block;margin-bottom:9px}
+  .kicker{font-size:15px;color:var(--ink-soft);margin:8px 0 22px;max-width:62ch}
+
+  .status{background:var(--panel);border-left:3px solid var(--warn);padding:16px 18px;margin:30px 0 0;font-size:14.5px;color:var(--ink-soft)}
+  .status strong{color:var(--ink)}
+
+  .claim{border-left:3px solid var(--hot);padding:2px 0 2px 16px;margin:22px 0;max-width:62ch}
+  .claim .q{font-family:var(--mono);font-size:14px;color:var(--ink-soft);line-height:1.5}
+  .claim .q b{color:var(--ink);font-weight:500}
+
+  figure{margin:24px 0 8px;background:var(--plot);border:1px solid var(--rule);overflow:hidden}
+  figure img{display:block;width:100%;max-width:100%;height:auto}
+  figcaption{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:#aab2c2;padding:11px 13px;border-top:1px solid #262c38}
+  figcaption b{color:#fff;font-weight:500}
+  .pair{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  @media (max-width:560px){.pair{grid-template-columns:1fr}}
+  .pair figure{margin:24px 0 8px}
+
+  .tablewrap{overflow-x:auto;margin:22px 0 8px}
+  table{border-collapse:collapse;width:100%;min-width:540px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+  th,td{text-align:right;padding:9px 12px;border-bottom:1px solid var(--rule);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left;font-family:var(--sans);white-space:normal}
+  thead th{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid var(--ink)}
+  tr.good td{color:var(--teal)}
+  tr.bad td{color:var(--hot)}
+  .note{font-size:13px;color:var(--ink-faint);max-width:66ch;margin-top:10px}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0}
+  @media (max-width:640px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--panel);border:1px solid var(--rule);padding:16px}
+  .stat .n{font-family:var(--mono);font-size:25px;font-weight:500;line-height:1.05;color:var(--hot);font-variant-numeric:tabular-nums}
+  .stat .l{font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.42}
+
+  ul{margin:0 0 16px;padding-left:20px;max-width:66ch}
+  li{margin-bottom:8px}
+  code{font-family:var(--mono);font-size:.9em;background:var(--panel);border:1px solid var(--rule);padding:1px 5px}
+  footer{padding-block:34px 0;font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);line-height:1.7}
+
+  .downloads{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+  .dl{font-family:var(--mono);font-size:13px;text-decoration:none;color:var(--ink);
+      background:var(--panel);border:1px solid var(--rule);padding:9px 14px;transition:border-color .15s}
+  .dl:hover{border-color:var(--hot);color:var(--hot)}
+  .dl:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Blender character tooling</div>
+  <h1>Rig Tooling Bench</h1>
+  <p class="lede">Two add-ons for rigged characters, and the measurement rig they were built against. Every figure here came out of that rig, including the ones that go the wrong way.</p>
+  <div class="meta">
+    <span>Arminas · Vilnius, Lithuania</span>
+    <span>Blender 5.0 · Python · <code>bpy</code> as a module</span>
+    <span>September 2026</span>
+  </div>
+  <div class="status">
+    <strong>What this is.</strong> Working tools with published benchmarks, not shipped products. Both add-ons run. One solves something Blender refuses to do at all; the other beats Blender's default on part of the problem and loses on another part, and that is shown rather than omitted.
+  </div>
+<div class="downloads">
+  <a class="dl" href="dist/character_lod-0.1.0.zip">Character LOD &mdash; add-on .zip</a>
+  <a class="dl" href="dist/geodesic_weights-0.1.0.zip">Geodesic Weights &mdash; add-on .zip</a>
+  <a class="dl" href="https://github.com/zemis/rig-tooling-bench">Source on GitHub</a>
+</div>
+</header>
+
+<section>
+  <span class="num">01</span>
+  <h2>Character LOD</h2>
+  <p class="kicker">LOD chains from rigged, shape-keyed characters, to exact triangle budgets, with vertex groups and blend shapes intact.</p>
+
+  <p>Blender will not do this. Ask it to apply a Decimate modifier to a character that has shape keys and it stops:</p>
+
+  <div class="claim"><div class="q"><b>Error: Modifier cannot be applied to a mesh with shape keys</b><br>Blender 5.0.1, four of four test characters</div></div>
+
+  <p>So the artist strips the blend shapes first, and then the second problem arrives. Decimating a 7,234-face character at ratio 0.4 leaves <b>2,712 of 2,895 vertices with weights that no longer sum to 1.0</b>, 331 vertices past the four-influence limit game engines enforce, and a maximum of seven influences on a single vertex. The mesh is smaller and the rig is broken.</p>
+
+  <p>This add-on captures the weights and the shape key deltas before touching the topology, reduces, then maps both back onto the new vertices by inverse-distance blend from the nearest source vertices, and renormalises under the influence cap. Triangle budgets are hit by binary-searching the decimate ratio, because Blender's ratio acts on triangles and a ratio derived from a face count misses badly on quad and n-gon meshes.</p>
+
+  <figure>
+    <img src="lod_chain.png" alt="Four wireframe renders of the same character at decreasing triangle counts: 14,424, 7,218, 3,616 and 1,420 triangles, silhouette preserved throughout.">
+    <figcaption><b>One source character, three generated levels.</b> Each level was given a triangle budget and hit it. Vertex groups and shape keys survive every step.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Level</th><th>Budget</th><th>Actual</th><th>Budget error</th><th>Groups</th><th>Shape keys</th><th>Unnormalised</th><th>Over 4</th><th>Deform error</th></tr></thead>
+    <tbody>
+      <tr class="good"><td>LOD1</td><td>7,176</td><td>7,182</td><td>0.1%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>2.70%</td></tr>
+      <tr class="good"><td>LOD2</td><td>3,588</td><td>3,597</td><td>0.3%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>2.78%</td></tr>
+      <tr class="good"><td>LOD3</td><td>1,721</td><td>1,693</td><td>1.6%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>2.86%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Four characters, three levels each, twelve LOD builds with full metrics in 4.3 seconds. Deform error is mean nearest-point displacement against the source mesh across three test poses, as a percentage of body height.</p>
+</section>
+
+<section>
+  <span class="num">02</span>
+  <h2>Geodesic Weights</h2>
+  <p class="kicker">Binding that measures distance along the surface instead of through the air, and an honest account of what that buys.</p>
+
+  <p>Blender binds with bone heat diffusion, which travels through space. When a limb rests near the body the weight leaks across the air gap, and the chest drags when the arm lifts. It is a standing forum complaint with no number attached to it, so the first job was to produce the number: rotate one arm bone 1.2 radians and count torso vertices that move. There is no legitimate mechanism by which rotating an arm should move the sternum.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">62.9%</div><div class="l">of torso vertices move when one arm rotates, arms-at-sides build</div></div>
+    <div class="stat"><div class="n">33,885</div><div class="l">of 35,826 vertices come out of the bind not summing to 1.0</div></div>
+    <div class="stat"><div class="n">5,190</div><div class="l">vertices past the four-influence limit, before anyone decimates anything</div></div>
+  </div>
+
+  <div class="pair">
+    <figure>
+      <img src="pf_weight_heat.png" alt="Weight map of the left upper arm bone under bone heat binding, its influence spreading across the chest.">
+      <figcaption><b>Bone heat.</b> The arm bone's influence spills across the shoulder and down the chest.</figcaption>
+    </figure>
+    <figure>
+      <img src="pf_weight_geo.png" alt="Weight map of the same bone under geodesic binding, influence confined to the arm.">
+      <figcaption><b>Geodesic.</b> The chest is far from the arm across the skin, even though it is close through the air.</figcaption>
+    </figure>
+  </div>
+  <div class="pair">
+    <figure>
+      <img src="pf_bleed_heat.png" alt="Error map under bone heat: a large lit region across the chest where torso vertices moved.">
+      <figcaption><b>Error, bone heat.</b> Arm raised. Every lit torso vertex moved and should not have.</figcaption>
+    </figure>
+    <figure>
+      <img src="pf_bleed_geo.png" alt="Error map under geodesic binding: a visibly smaller lit region near the shoulder.">
+      <figcaption><b>Error, geodesic.</b> Same pose, same colour scale. The region contracts toward the shoulder.</figcaption>
+    </figure>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Binding</th><th>Torso bleed</th><th>Joint jaggedness</th><th>Unnormalised</th><th>Over 4 influences</th></tr></thead>
+    <tbody>
+      <tr><td>Bone heat, untouched</td><td>62.88%</td><td>1.83</td><td>33,885</td><td>5,190</td></tr>
+      <tr><td>Bone heat + Limit Total + Normalize All</td><td>60.88%</td><td>1.87</td><td>0</td><td>0</td></tr>
+      <tr class="good"><td>Geodesic + surface smoothing</td><td>44.77%</td><td class="bad">2.17</td><td>0</td><td>0</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Twenty character builds, five metrics each, ten seconds. Jaggedness is the 99th percentile displacement difference between neighbouring vertices when the elbow bends; lower is smoother, and it is the check that catches a method cheating by snapping every vertex to one bone.</p>
+
+  <h3>Where it loses</h3>
+  <p>The middle row is the row that matters. Blender's own two operators, run in the correct order, fix weight validity completely and do almost nothing for bleed, so the honest comparison is against that and not against the untouched bind. Against it, geodesic binding removes <b>26.5% of the bleeding vertices</b> and pays for it with joint deformation <b>16% rougher</b>.</p>
+  <p>That trade is the open problem. Uniform Laplacian smoothing restores the blend at the joint but undoes the geodesic separation at the same rate, because it does not know where one bone's region ends. Smoothing constrained to region boundaries is the fix; bounded biharmonic weights are the published form of it.</p>
+</section>
+
+<section>
+  <span class="num">03</span>
+  <h2>The bench</h2>
+  <p class="kicker">The measurement rig both tools were built against. Headless, no GUI, nobody looking at anything.</p>
+  <ul>
+    <li><strong>Character generation.</strong> Metaball bodies converted and voxel-remeshed to a single welded manifold surface on a 17-bone skeleton, deterministic per seed, with shape keys. Roughly 7,000 to 8,500 vertices each.</li>
+    <li><strong>Metrics.</strong> Per-vertex influence counts, weight sum error, orphan vertices, effective bones per vertex, deformation displacement against the rest pose across a pose library, and surface jaggedness under bend.</li>
+    <li><strong>Assertions.</strong> Invariants a corpus must satisfy before it counts as a benchmark at all, so a broken test set fails loudly instead of returning a flattering number.</li>
+    <li><strong>Rendering.</strong> Vertex-colour field visualisation and wireframe passes through Cycles, at a fixed scale across methods, about seven seconds a frame.</li>
+  </ul>
+  <p>A head-to-head of two binding methods across twenty characters takes ten seconds; a full LOD chain benchmark takes four. Every number on this page can be re-derived on demand rather than measured once and quoted forever.</p>
+</section>
+
+<section>
+  <span class="num">04</span>
+  <h2>Two results thrown away</h2>
+  <p class="kicker">Both caught by the bench before anything was published. A portfolio that shows only the wins is not evidence of method.</p>
+  <ul>
+    <li><strong>A benchmark that could not measure the thing.</strong> The first test characters were unions of separate boxes, so the mesh had disconnected shells and surface distance between them was undefined. The method scored a 16% improvement on that corpus and 93% on properly welded bodies. The benchmark was wrong, not the algorithm. Found by running a connected-components count on the mesh edge graph.</li>
+    <li><strong>A 93% that was fake.</strong> Near-zero bleed can also mean every vertex snapped to exactly one bone, which is rigid binding and deforms like cardboard. Measuring effective bones per vertex showed <b>76.9% of vertices rigid</b> and the surface more than twice as jagged as bone heat. The number was discarded and the jaggedness check became permanent.</li>
+  </ul>
+</section>
+
+<footer>
+  Blender 5.0.1 · <code>bpy</code> 5.0.1 · SciPy sparse Dijkstra and cKDTree · Cycles<br>
+  Both add-ons install as Blender extensions. All figures reproducible from the bench.
+</footer>
+
+</div>
+
+</body>
+</html>
