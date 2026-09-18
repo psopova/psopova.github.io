@@ -16,13 +16,18 @@ def add_keys(o):
     return o
 
 def deform_err(base_obj, base_arm, lod_obj, h):
-    """Nearest-point displacement difference between LOD0 and LODk, across poses."""
-    tree=None; errs=[]
+    """Nearest-point displacement difference between LOD0 and LODk, across poses.
+
+    The KD-tree MUST be rebuilt for every pose. Building it once from pose 0 and
+    reusing it compares later poses against the wrong base geometry, which inflated
+    this figure 17x in the first version and hid the real degradation between levels.
+    An independent audit caught it."""
+    errs=[]
     for p in POSES:
         b=rc.deformed_coords(base_obj, base_arm, p)
         l=rc.deformed_coords(lod_obj, base_arm, p)
         b=np.array([tuple(x) for x in b]); l=np.array([tuple(x) for x in l])
-        if tree is None: tree=cKDTree(b)
+        tree=cKDTree(b)                      # rebuilt per pose
         d,_=tree.query(l, k=1)
         errs.append(100*float(np.mean(d))/h)
     return round(statistics.mean(errs),3)
@@ -55,6 +60,22 @@ for s in range(4):
             "unnorm":w["unnormalised"],"over4":w["over_cap"],"orphan":w["orphans"],
             "err":deform_err(o,a,lod,h)})
         bpy.data.objects.remove(lod, do_unlink=True)
+
+FAILED=[]
+def check(cond, msg):
+    if not cond: FAILED.append(msg)
+
+for r in rows:
+    check(abs(r["polys"]-r["target"])/r["target"] < 0.05, f"{r['level']} seed{r['seed']}: budget missed by >5%")
+    check(r["unnorm"]==0 and r["over4"]==0 and r["orphan"]==0, f"{r['level']} seed{r['seed']}: broken weights")
+    check(r["keys"]==4 and r["groups"]==17, f"{r['level']} seed{r['seed']}: lost groups or keys")
+    check(r["err"] < 1.0, f"{r['level']} seed{r['seed']}: deform error {r['err']}% too high")
+# levels must actually degrade; if they do not, the metric is not measuring anything
+byl={n:[x["err"] for x in rows if x["level"]==n] for n,_ in LEVELS}
+check(statistics.mean(byl["LOD3"]) > statistics.mean(byl["LOD1"])*1.3,
+      "LOD3 error not meaningfully worse than LOD1: the metric is probably broken")
+print(f"ASSERTIONS: {len(FAILED)} failed" + ("" if not FAILED else " -> " + "; ".join(FAILED[:4])))
+assert not FAILED, FAILED[:4]
 
 print(f"Blender's own Decimate on a shape-keyed character: FAILED on {blender_fail}/4 (it refuses outright)\n")
 print(f"{'level':>6} {'tgt tris':>9} {'got tris':>9} {'budget err':>11} {'groups':>7} {'keys':>5} {'unnorm':>7} {'over4':>6} {'orphan':>7} {'deform err %':>13}")

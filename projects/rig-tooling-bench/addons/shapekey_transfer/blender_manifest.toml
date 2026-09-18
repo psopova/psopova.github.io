@@ -1,9 +1,0 @@
-schema_version = "1.0.0"
-id = "shapekey_transfer"
-version = "0.1.0"
-name = "Shape Key Transfer"
-tagline = "Move a whole shape key set onto a mesh with unrelated topology"
-maintainer = "Arminas"
-type = "add-on"
-license = ["SPDX:GPL-3.0-or-later"]
-blender_version_min = "4.2.0"

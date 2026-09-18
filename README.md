@@ -8,21 +8,21 @@ Every number published here is produced by a benchmark rig that ships with the s
 can be re-derived rather than taken on trust. Results that went the wrong way are published alongside
 the ones that did not.
 
+An independent audit was run against these claims in September 2026. It retracted one product, corrected
+a number that was 17x wrong, and showed that a set of checks presented as measurements were true by
+construction. All of it is in [CORRECTIONS.md](CORRECTIONS.md), and the corrections are reflected above.
+
 ---
 
 ## Projects
 
 ### [Rig Tooling Bench](projects/rig-tooling-bench/) &mdash; Blender 4.2+, GPL-3.0
 
-Three add-ons and the measurement rig behind them.
+Two add-ons and the measurement rig behind them.
 
 **Character LOD.** LOD chains from rigged, shape-keyed characters, to exact triangle budgets, with
 vertex groups and blend shapes preserved. Blender's own Decimate refuses to apply to a mesh with shape
 keys; this does it, hitting triangle budgets to within 1.6% with zero broken weights.
-
-**Shape Key Transfer.** Moves a whole shape key set onto a mesh with unrelated topology, through
-deformation gradients rather than positions, so shapes carrying rotation survive. 66.7% lower error than
-position blending against exact analytic ground truth, and 6 times better in the worst case.
 
 **Geodesic Weights.** Armature binding that measures distance along the mesh surface rather than
 through the air, so weight does not leak across the gap between a limb and the body. Removes 26.5% of

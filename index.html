@@ -110,7 +110,6 @@
   <div class="downloads">
     <a class="dl" href="projects/rig-tooling-bench/dist/character_lod-0.1.0.zip">Character LOD &mdash; .zip</a>
     <a class="dl" href="projects/rig-tooling-bench/dist/geodesic_weights-0.1.0.zip">Geodesic Weights &mdash; .zip</a>
-    <a class="dl" href="projects/rig-tooling-bench/dist/shapekey_transfer-0.1.0.zip">Shape Key Transfer &mdash; .zip</a>
     <a class="dl" href="https://github.com/psopova/psopova.github.io">Source on GitHub</a>
   </div>
 </header>
@@ -118,7 +117,7 @@
 <section>
   <span class="num">Project 01</span>
   <h2>Rig Tooling Bench</h2>
-  <p class="kicker">Three add-ons for rigged characters, and the measurement rig they were built against. Blender 4.2+, GPL-3.0. Each one does something Blender either refuses to do or does measurably badly, and each ships with the benchmark behind its claim.</p>
+  <p class="kicker">Two add-ons for rigged characters, and the measurement rig they were built against. Blender 4.2+, GPL-3.0. Each one does something Blender either refuses to do or does measurably badly, and each ships with the benchmark behind its claim.</p>
 </section>
 
 <section>
@@ -130,7 +129,7 @@
 
   <div class="claim"><div class="q"><b>Error: Modifier cannot be applied to a mesh with shape keys</b><br>Blender 5.0.1, four of four test characters</div></div>
 
-  <p>So the artist strips the blend shapes first, and then the second problem arrives. Decimating a 7,234-face character at ratio 0.4 leaves <b>2,712 of 2,895 vertices with weights that no longer sum to 1.0</b>, 331 vertices past the four-influence limit game engines enforce, and a maximum of seven influences on a single vertex. The mesh is smaller and the rig is broken.</p>
+  <p>So the artist strips the blend shapes first, and then the second problem arrives. After decimating a 7,234-face character at ratio 0.4, <b>2,712 of 2,895 vertices have weights that do not sum to 1.0</b> and 331 sit past the four-influence limit game engines enforce. An earlier version of this page blamed Decimate for that. An audit checked before and after and found <b>94.9% already broken before decimation and 93.7% after</b>: Blender's automatic weight bind broke the rig, and Decimate slightly improved it. The counts were right, the cause was wrong.</p>
 
   <p>This add-on captures the weights and the shape key deltas before touching the topology, reduces, then maps both back onto the new vertices by inverse-distance blend from the nearest source vertices, and renormalises under the influence cap. Triangle budgets are hit by binary-searching the decimate ratio, because Blender's ratio acts on triangles and a ratio derived from a face count misses badly on quad and n-gon meshes.</p>
 
@@ -141,55 +140,19 @@
 
   <div class="tablewrap">
   <table>
-    <thead><tr><th>Level</th><th>Budget</th><th>Actual</th><th>Budget error</th><th>Groups</th><th>Shape keys</th><th>Unnormalised</th><th>Over 4</th><th>Deform error</th></tr></thead>
+    <thead><tr><th>Level</th><th>Budget</th><th>Actual</th><th>Budget error</th><th>Groups*</th><th>Shape keys*</th><th>Unnormalised*</th><th>Over 4*</th><th>Deform error</th></tr></thead>
     <tbody>
-      <tr class="good"><td>LOD1</td><td>7,176</td><td>7,182</td><td>0.1%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>2.70%</td></tr>
-      <tr class="good"><td>LOD2</td><td>3,588</td><td>3,597</td><td>0.3%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>2.78%</td></tr>
-      <tr class="good"><td>LOD3</td><td>1,721</td><td>1,693</td><td>1.6%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>2.86%</td></tr>
+      <tr class="good"><td>LOD1</td><td>7,176</td><td>7,182</td><td>0.1%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>0.157%</td></tr>
+      <tr class="good"><td>LOD2</td><td>3,588</td><td>3,597</td><td>0.3%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>0.285%</td></tr>
+      <tr class="good"><td>LOD3</td><td>1,721</td><td>1,693</td><td>1.6%</td><td>17 / 17</td><td>4 / 4</td><td>0</td><td>0</td><td>0.346%</td></tr>
     </tbody>
   </table>
   </div>
-  <p class="note">Four characters, three levels each, twelve LOD builds with full metrics in 4.3 seconds. Deform error is mean nearest-point displacement against the source mesh across three test poses, as a percentage of body height.</p>
+  <p class="note">Four characters, three levels each, twelve LOD builds with full metrics in 4.3 seconds. Deform error is mean nearest-point displacement against the source mesh across three test poses, as a percentage of body height.<br><b>*</b> These four columns are <b>guaranteed by construction</b>, not measured. An independent audit sabotaged the transfer three ways and every one stayed identical, so they prove nothing on their own. The benchmark now carries assertions that can fail, verified by deliberately breaking the code: <b>3 of 3 sabotages caught</b>. Earlier versions of this table published a deformation error of 2.70 to 2.86 percent. That was a stale KD-tree, 17 times too large. See section 05.</p>
 </section>
 
 <section>
-  <span class="num">02 &middot; Shape Key Transfer</span>
-  <h2>Shape Key Transfer</h2>
-  <p class="kicker">Move an entire shape key set onto a mesh with completely unrelated topology, through deformation gradients rather than positions.</p>
-
-  <p>Blender's route is a Surface Deform modifier plus Apply as Shape Key, one key at a time. Surface Deform binds by barycentric projection and interpolates <em>positions</em>, so any shape carrying local rotation, a jaw opening, a head turning, a shoulder lifting, arrives smeared. Blender's own tracker records it: <b>#161807 "Apply Shapekey from Surface Deform Not Accurate"</b> and <b>#98891 "Surface Deform modifier ignores shapekeys"</b>. Data Transfer cannot carry shape keys at all.</p>
-
-  <p>This transfers through each source triangle's local frame, which is that triangle's deformation gradient, so rotation and scale come across exactly rather than being averaged away.</p>
-
-  <div class="claim"><div class="q">Ground truth here is <b>exact, not estimated</b>. Each test shape is an analytic function of position. Apply it to the donor to make its key; apply the same function to the target to get the target's provably correct key. Transfer donor to target, measure against that. No circularity, and no scoring a method against itself.</div></div>
-
-  <div class="tablewrap">
-  <table>
-    <thead><tr><th>Test shape</th><th>Deformation gradient</th><th>Position blending</th><th>Worst case, ours</th><th>Worst case, theirs</th><th>Error reduced</th></tr></thead>
-    <tbody>
-      <tr class="good"><td>Jaw open</td><td>0.0004%</td><td>0.0026%</td><td>0.024%</td><td>0.180%</td><td>85.0%</td></tr>
-      <tr class="good"><td>Head turn</td><td>0.0005%</td><td>0.0031%</td><td>0.024%</td><td>0.153%</td><td>84.9%</td></tr>
-      <tr class="good"><td>Shoulder raise</td><td>0.0123%</td><td>0.0207%</td><td>0.335%</td><td>0.514%</td><td>40.4%</td></tr>
-      <tr class="good"><td>Spine bend</td><td>0.0014%</td><td>0.0175%</td><td>0.033%</td><td>0.155%</td><td>91.8%</td></tr>
-    </tbody>
-  </table>
-  </div>
-  <p class="note">Sixteen transfers, four characters by four shapes, in 5.5 seconds. Source 8,428 vertices to target 13,626 vertices, unrelated topology. Error is mean per-vertex distance from the exact answer, as a percentage of body height. <b>66.7% lower error overall, and 6 times better in the worst case.</b> Reproduce with <code>bench/tests/keytransfer_bench.py</code>.</p>
-
-  <div class="pair">
-    <figure>
-      <img src="assets/kt_base.png" alt="Error map on the target head under position blending, showing a large lit region of transfer error.">
-      <figcaption><b>Position blending.</b> Head turn, worst error 0.146% of body height.</figcaption>
-    </figure>
-    <figure>
-      <img src="assets/kt_ours.png" alt="Error map on the same head under deformation gradient transfer, nearly dark.">
-      <figcaption><b>Deformation gradients.</b> Same shape, same colour scale, worst error 0.024%.</figcaption>
-    </figure>
-  </div>
-</section>
-
-<section>
-  <span class="num">03 &middot; Geodesic Weights</span>
+  <span class="num">02 &middot; Geodesic Weights</span>
   <h2>Geodesic Weights</h2>
   <p class="kicker">Binding that measures distance along the surface instead of through the air, and an honest account of what that buys.</p>
 
@@ -234,13 +197,22 @@
   </div>
   <p class="note">Twenty character builds, five metrics each, ten seconds. Jaggedness is the 99th percentile displacement difference between neighbouring vertices when the elbow bends; lower is smoother, and it is the check that catches a method cheating by snapping every vertex to one bone.</p>
 
+  <h3>Three things an audit corrected</h3>
+  <p>The numbers above survived an independent audit. They reproduce exactly, hold on five characters never used while tuning (29.0% against a published 28.8%), and are stable across bleed thresholds from 0.1% to 5.0%. Three claims around them did not survive.</p>
+  <ul>
+    <li><strong>The stated mechanism was wrong.</strong> The pitch was that an arm 8 cm from the body is 60 cm away across the skin, a 7.5x ratio. Measured on these actual meshes it is <b>1.10x median</b>: the voxel remesh fuses the arms into the torso, so there is no air gap to step around. The effect is real, the explanation was not.</li>
+    <li><strong>About half the gain is not geodesic.</strong> Replacing Dijkstra with plain Euclidean distance, everything else identical, gives 53.50% against 44.77%. The surface-distance term accounts for 8.7 of the 18.1 point reduction; the rest is falloff, capping and smoothing.</li>
+    <li><strong>The anti-cheat guard did not work.</strong> Jaggedness was described as the check that catches a method snapping every vertex to one bone. Binding every vertex to the pelvis scores <b>0.00% bleed and 0.00 jaggedness</b>, beating this add-on on every published metric, while the mesh does not move at all. A rigid bind is perfectly smooth, so jaggedness cannot see it. An under-deformation gate now rejects it.</li>
+  </ul>
+  <p class="note">Precision was also overstated. Per-character reduction runs 21.5 to 36.6 percent on five near-duplicate bodies, so the honest statement is <b>about 29% fewer bleeding vertices, roughly 21 to 36 percent at 95% confidence</b>. Two results were computed and dropped, and both belong here: the T-pose case is <b>11.5%</b>, less than half the headline, and effective bones per vertex goes the wrong way, 1.80 for bone heat against 1.70 for this method.</p>
+
   <h3>Where it loses</h3>
   <p>The middle row is the row that matters. Blender's own two operators, run in the correct order, fix weight validity completely and do almost nothing for bleed, so the honest comparison is against that and not against the untouched bind. Against it, geodesic binding removes <b>26.5% of the bleeding vertices</b> and pays for it with joint deformation <b>16% rougher</b>.</p>
   <p>That trade is the open problem. Uniform Laplacian smoothing restores the blend at the joint but undoes the geodesic separation at the same rate, because it does not know where one bone's region ends. Smoothing constrained to region boundaries is the fix; bounded biharmonic weights are the published form of it.</p>
 </section>
 
 <section>
-  <span class="num">04 &middot; The bench</span>
+  <span class="num">03 &middot; The bench</span>
   <h2>The bench</h2>
   <p class="kicker">The measurement rig both tools were built against. Headless, no GUI, nobody looking at anything.</p>
   <ul>
@@ -253,7 +225,7 @@
 </section>
 
 <section>
-  <span class="num">05 &middot; Judgement</span>
+  <span class="num">04 &middot; Judgement</span>
   <h2>What I measured and rejected</h2>
   <p class="kicker">Both caught by the bench before anything was published. A portfolio that shows only the wins is not evidence of method.</p>
   <ul>
@@ -261,6 +233,50 @@
   <li><strong>A benchmark that could not measure the thing.</strong> The first test characters were unions of separate boxes, so the mesh had disconnected shells and surface distance between them was undefined. The method scored a 16% improvement on that corpus and 93% on properly welded bodies. The benchmark was wrong, not the algorithm. Found by running a connected-components count on the mesh edge graph.</li>
     <li><strong>A 93% that was fake.</strong> Near-zero bleed can also mean every vertex snapped to exactly one bone, which is rigid binding and deforms like cardboard. Measuring effective bones per vertex showed <b>76.9% of vertices rigid</b> and the surface more than twice as jagged as bone heat. The number was discarded and the jaggedness check became permanent.</li>
   </ul>
+</section>
+
+<section>
+  <span class="num">05 &middot; Audit</span>
+  <h2>An independent audit, and what it broke</h2>
+  <p class="kicker">The code, the benchmarks and the grading were all written by the same person, which is the exact failure this page criticises in other listings. So somebody else was given the source, told to run it, and rewarded for finding problems.</p>
+
+  <p>It found them. This section is here because a portfolio that only reports its wins is not evidence of method.</p>
+
+  <h3>One product was retracted outright</h3>
+  <p>A third add-on, Shape Key Transfer, was published here claiming <b>66.7% lower error</b> than position blending. The comparison baseline had been written by the same author as the method. The auditor ran Blender's <em>actual</em> Surface Deform modifier on the identical benchmark, and all 16 transfers bound successfully:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Method</th><th>Mean error</th></tr></thead>
+    <tbody>
+      <tr><td>The add-on</td><td>0.00373%</td></tr>
+      <tr><td>The hand-written comparison baseline</td><td>0.01098%</td></tr>
+      <tr class="good"><td>Blender's real Surface Deform modifier</td><td>0.00272%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><b>Blender's built-in has 37% less error than the add-on.</b> An attempted fix to the frame construction made it marginally worse. The product was withdrawn rather than repriced: it is worse than a modifier that ships free. The code stays in the repository as a negative result.</p>
+
+  <h3>One number was seventeen times wrong</h3>
+  <p>The LOD deformation error was published as 2.70 / 2.78 / 2.86 percent. The benchmark built its nearest-point tree once from the first pose and reused it for the other two, comparing later poses against the wrong base geometry. Honest figures: <b>0.157 / 0.285 / 0.346 percent</b>.</p>
+  <p>The bug flattered the result in the way that mattered. The wrong figure rose only 6% from LOD1 to LOD3, reading as "LOD3 is nearly as good as LOD1". The honest one more than doubles. The benchmark now asserts that LOD3 must be at least 1.3x worse than LOD1, because a degradation metric that does not degrade is not measuring anything.</p>
+
+  <h3>The tests could not fail</h3>
+  <p>The "17 groups, 4 shape keys, 0 broken weights" row was presented as a measurement and was true by construction. Three sabotages left every column identical. Assertions that can fail were written, then verified by deliberately breaking the code:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Sabotage</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr class="good"><td>Scramble the transferred weights</td><td>CAUGHT</td></tr>
+      <tr class="good"><td>Drop the shape keys</td><td>CAUGHT</td></tr>
+      <tr class="good"><td>Ignore the triangle budget</td><td>CAUGHT</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>What survived</h3>
+  <p>The auditor confirmed the shape key ground truth was genuinely independent with no circularity, that Blender's Decimate really does refuse on shape-keyed meshes in four of four cases, that the triangle budgets reproduce exactly, that the geodesic result is not hyperparameter-shopped and holds on unseen characters, and that comparing against Blender's free two-operator fix rather than the untouched bind was the harder and more honest choice. It also noted that a far more flattering 92.6% figure existed in the files and had not been published.</p>
+
+  <p class="note">Full record in <code>CORRECTIONS.md</code>. The working practice changed with it: code and its audit are now written separately, and no number is published until something that did not write the code has tried to break it.</p>
 </section>
 
 <footer>

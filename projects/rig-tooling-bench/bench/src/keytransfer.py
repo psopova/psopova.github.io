@@ -17,12 +17,19 @@ def _tri_arrays(me):
     return v, t
 
 def _frames(P, T):
-    """Per-triangle frame: two edges plus the normal. Columns of a 3x3 matrix."""
+    """Per-triangle frame, Sumner and Popovic 2004.
+
+    The third column is the normal scaled by sqrt of the cross-product length, NOT a
+    unit normal. That scaling is what makes the frame sensitive to deformation along
+    the normal. Using a unit normal here makes G blind to normal-direction stretch and
+    shear, which is a real bug an independent audit found in the first version of this
+    file: it recovered identity for a 1.5x stretch along the normal.
+    """
     a, b, c = P[T[:,0]], P[T[:,1]], P[T[:,2]]
     e1, e2 = b-a, c-a
     n = np.cross(e1, e2)
     ln = np.linalg.norm(n, axis=1, keepdims=True)
-    n = n / np.maximum(ln, 1e-12)
+    n = n / np.sqrt(np.maximum(ln, 1e-12))     # sqrt scaling, not normalisation
     F = np.stack([e1, e2, n], axis=2)          # (T,3,3)
     return a, F
 
