@@ -1,0 +1,56 @@
+# Deploy the site as static files.
+# This replaces GitHub's legacy Jekyll builder, which began failing once the site
+# moved to the repository root. A workflow build is deterministic and its log is readable.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp index.html .nojekyll _site/
+          cp -r assets _site/
+          mkdir -p _site/projects/rig-tooling-bench
+          cp -r projects/rig-tooling-bench/dist _site/projects/rig-tooling-bench/
+          echo "--- site contents ---"
+          find _site -type f | sort
+          echo "--- every path the page references must exist ---"
+          fail=0
+          for f in $(grep -oE '(src|href)="[^"]+"' index.html \
+                     | sed -E 's/^(src|href)="//; s/"$//' \
+                     | grep -vE '^(https?:|#|mailto:)'); do
+            if [ -f "_site/$f" ]; then echo "  OK   $f"; else echo "  MISS $f"; fail=1; fi
+          done
+          exit $fail
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
